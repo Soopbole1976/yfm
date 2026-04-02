@@ -1,121 +1,79 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import BondingCurveChart from './components/BondingCurveChart'
+import BuySellPanel from './components/BuySellPanel'
+import PolymarketPanel from './components/PolymarketPanel'
+import { INITIAL_SUPPLY, priceAtSupply } from './bondingMath'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const MAX_SUPPLY = 50000
+
+export default function App() {
+  const [supply, setSupply] = useState(INITIAL_SUPPLY)
+  const [trades, setTrades] = useState([])
+
+  function handleTrade(type, amount) {
+    setSupply(prev => {
+      const next = type === 'buy' ? prev + amount : Math.max(0, prev - amount)
+      const price = priceAtSupply(next)
+      setTrades(t => [
+        { type, amount, price: price.toFixed(6), time: new Date().toLocaleTimeString() },
+        ...t.slice(0, 9)
+      ])
+      return next
+    })
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      <header className="app-header">
+        <div className="header-left">
+          <h1>Bonding Dashboard</h1>
+          <span className="header-badge">Polymarket</span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+        <div className="header-right">
+          <span className="live-dot" />
+          <span className="live-label">Live</span>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <main className="dashboard">
+        <div className="col col-left">
+          <BondingCurveChart supply={supply} maxSupply={MAX_SUPPLY} />
+          <BuySellPanel supply={supply} onTrade={handleTrade} />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <div className="col col-right">
+          <PolymarketPanel />
+
+          {trades.length > 0 && (
+            <div className="card trade-history">
+              <h2>Trade History</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Price</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {trades.map((t, i) => (
+                    <tr key={i}>
+                      <td className={t.type === 'buy' ? 'positive' : 'negative'}>
+                        {t.type.toUpperCase()}
+                      </td>
+                      <td>{t.amount.toLocaleString()}</td>
+                      <td>{t.price} ETH</td>
+                      <td>{t.time}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   )
 }
-
-export default App
