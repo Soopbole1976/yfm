@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { BondingMarket, SortField, SortDirection, ViewMode, TimeHorizon } from './types';
 import { fetchBondingMarkets } from './lib/polymarket';
 import type { FetchProgress } from './lib/polymarket';
+import { useNotifications } from './lib/notifications';
 import FilterBar from './components/FilterBar';
 import SearchBar from './components/SearchBar';
 import MarketGrid from './components/MarketGrid';
@@ -26,6 +27,7 @@ export default function App() {
   const [progress, setProgress] = useState<FetchProgress | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { permission, requestPermission, checkMarkets } = useNotifications();
 
   const loadMarkets = useCallback(async (showProgress = false) => {
     try {
@@ -36,6 +38,7 @@ export default function App() {
         showProgress ? setProgress : undefined,
       );
       setMarkets(data);
+      checkMarkets(data);
       setLastUpdated(new Date());
     } catch (err) {
       if (markets.length === 0) {
@@ -106,15 +109,37 @@ export default function App() {
             </h1>
             <p className="text-sm text-gray-500 mt-2">Find bonding opportunities before they close</p>
           </div>
-          {lastUpdated && (
-            <span
-              key={lastUpdated.getTime()}
-              className="text-xs text-gray-500 cursor-help animate-flash-update px-3 py-1 rounded-full bg-gray-800/50 border border-gray-800"
-              title="Last time market data was refreshed from Polymarket"
-            >
-              Updated {lastUpdated.toLocaleTimeString()}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {permission !== 'granted' && (
+              <button
+                onClick={requestPermission}
+                title="Enable browser notifications for new markets, probability spikes, and closing-soon alerts"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-blue-700 bg-blue-950 text-blue-300 hover:bg-blue-900 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                </svg>
+                Enable alerts
+              </button>
+            )}
+            {permission === 'granted' && (
+              <span title="Notifications enabled — you'll be alerted for new markets, probability spikes, and markets closing within 1 hour" className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-emerald-800 bg-emerald-950 text-emerald-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                </svg>
+                Alerts on
+              </span>
+            )}
+            {lastUpdated && (
+              <span
+                key={lastUpdated.getTime()}
+                className="text-xs text-gray-500 cursor-help animate-flash-update px-3 py-1 rounded-full bg-gray-800/50 border border-gray-800"
+                title="Last time market data was refreshed from Polymarket"
+              >
+                Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
